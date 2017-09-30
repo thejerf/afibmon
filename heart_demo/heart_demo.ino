@@ -28,13 +28,11 @@ void setup() {
 }
 
 void loop() {
-  
   if((digitalRead(10) == 1)||(digitalRead(11) == 1)){
-    Serial.println('n');
-  }
-  else{
+    Serial.println('y');
+  } else{
     // send the value of analog input 0:
-      Serial.println(analogRead(A0));
+    Serial.println(analogRead(A0));
   }
   //Wait for a bit to keep serial data from saturating
   delay(1);
