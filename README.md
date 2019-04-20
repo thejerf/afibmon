@@ -20,6 +20,35 @@ However:
 
 Feel free to play with this for a bit, but if you're depending on it for anything that's on you.
 
+# Hardware Parts List
+
+1. An Arduino MKR1010 board.
+1. An AD8232 Arduino shield.
+1. A passive buzzer and 100ohm resistor for it.
+1. Eventually, some form of case to put this in.
+
+# Software Install
+
+I'm not sure how to package this better. Suggestions welcome.
+
+1. Install the Arduino IDE. Getting it from Linux distro packaging may be
+   too old.
+2. In the Arduino IDE, install any necessary package to speak to your
+   board, and install WifiNINA and RTCZero. (Despite the warning that it
+   only works on the MKR1000 it unsurprisingly seems to work on the MKR1010
+   as well.
+3. In afibmonitor/heart_monitor, create a new file with the following:
+
+       char ssid[] = "YOURSSID";
+       char pass[] = "YOURPASSWORD"
+       char monitorServer[] = "YOUR_MONITOR_SERVER";
+       int monitorPort = 18999; // your monitor port; this is default
+
+   This will configure the sketch to hook to your Wifi. This is set up
+   assuming WPA2; you're on your own if you're still on WEP, as I can't
+   test it. We'll get to the monitor server in a moment.
+
+
 # My Story
 
 I'll expand this later, but the short version is, I'm 38 and my heart does things it shouldn't. I have been to a Real Doctor and they have declared that what's happening to me is "perfectly normal cardiac events". So let's call it "subclinical". Subclinical my issues may be, but they are still seriously affecting my quality of life. I believe (but can't prove) I have paroxysmal fibrillation. For some people, such as my mother, fibrillation turns on like a switch and they stay in it continuously. I do not. In particular, it only affects me while I'm asleep or nearly asleep. Consequently it was a long time before I even realized I had a problem, until it got bad enough for me to notice it while trying to sleep, but before falling asleep.
@@ -33,3 +62,4 @@ But they don't do me any good. I need continual monitoring, and I need it _while
 You can also get longer term monitors, but they don't have any mechanism that I can see for accessing the data and processing it immediately. Consequently those are far less useful, if indeed they are useful at all. (Given how many hundreds of dollars they cost I haven't tried them out.) I _could_ improve over time with something that could retrospectively tell me how my night went, but there's no option to have sub-minute notifications at all, which is even better.
 
 As I write this, I'm still prototyping and fiddling. No idea if this is going to work or not. But we'll see.
+
