@@ -19,6 +19,8 @@
 // directory but you can still override it.
 #include "secrets.h"
 
+#include "pitches.h"
+
 RTCZero rtc;
 
 WiFiClient client;
@@ -29,12 +31,18 @@ const int TZ_OFFSET = 2; //change this to adapt it to your time zone
 
 int connected = 0;
 
+int piezoPin = 0;
+
 void setup() {
   Serial.begin(115200);
-
+  Serial.print("Hello!");
+  tone(piezoPin, NOTE_C3, 500);
+  Serial.print("generated the tone");
+  
   if (WiFi.status() == WL_NO_SHIELD) {
     while (1) {
       blink(200, 100);
+      tone(piezoPin, NOTE_C3, 250);
       blink(500, 100);
     }
   }
@@ -52,14 +60,26 @@ void setup() {
     attempts++;
   }
 
+  tone(piezoPin, NOTE_C3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_E3, 250);
+  delay(250);
+
   if (status != WL_CONNECTED) {
     while (1) {
       blink(200, 100);
+      tone(piezoPin, NOTE_C3, 500);
       blink(1000, 100);
     }
   }
 
   blinkr(50, 50, 2);
+  tone(piezoPin, NOTE_C3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_E3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_F3, 250);
+  delay(250);
 
   // print out the connection status for debugging purposes
   printWiFiStatus();
@@ -91,14 +111,36 @@ void setup() {
 
   blinkr(100, 50, 2);
 
+  tone(piezoPin, NOTE_C3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_E3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_F3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_G3, 250);
+  delay(250);
+
   connected = client.connect(monitorServer, monitorPort);
   if (!connected) {
     Serial.print("Could not connect to monitor server\n");
     while (1) {
+      tone(piezoPin, NOTE_F3, 250);
       blinkr(200, 100, 3);
       blink(1000, 100);
     }
   }
+
+  tone(piezoPin, NOTE_C3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_E3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_F3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_G3, 250);
+  delay(250);
+  tone(piezoPin, NOTE_C4, 250);
+  delay(250);
+
 }
 
 // Blink the onboard LED synchronously for the given on time and off time,
@@ -150,12 +192,12 @@ void printDate()
 
 void printWiFiStatus() {
   // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
+  Serial.print("SSID --: ");
   Serial.println(WiFi.SSID());
 
   // print your WiFi shield's IP address:
   IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
+  Serial.print("IP Address --: ");
   Serial.println(ip);
 
   // print the received signal strength:
