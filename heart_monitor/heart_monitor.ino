@@ -1,44 +1,42 @@
 /*
-  MKR1000 - MKR WiFi 1010 - MKR VIDOR 4000 WiFi RTC
 
-  This sketch asks NTP for the Linux epoch and sets the internal Arduino MKR1000's RTC accordingly.
+  heart_monitor.ino - part of https://github.com/thejerf/afibmon
 
-  created 08 Jan 2016
-  by Arturo Guadalupi <a.guadalupi@arduino.cc>
+  This code is cobbled together from several public-domain example code
+  bits, for the RTC code, the code to hook to Wifi, the NTP lookup for
+  time, etc.
 
-  modified 26 Sept 2018
-
-  http://arduino.cc/en/Tutorial/WiFiRTC
-  This code is in the public domain.
 */
 
 #include <SPI.h>
-//#include <WiFi101.h>
 #include <WiFiNINA.h> //Include this instead of WiFi101.h as needed
 #include <WiFiUdp.h>
 #include <RTCZero.h>
-#include "arduino_secrets.h"
+
+// If you error out on this line, look at the README for this repo
+// again. You have to create a file to contain your WIFI secrets.
+// Don't accidentally commit it to GitHub! .gitignore is configured in this
+// directory but you can still override it.
+#include "secrets.h"
 
 RTCZero rtc;
-///////please enter your sensitive data in the Secret tab/arduino_secrets.h
-int keyIndex = 0;                           // your network key Index number (needed only for WEP)
 
 WiFiClient client;
 
 int status = WL_IDLE_STATUS;
 
-const int GMT = 2; //change this to adapt it to your time zone
+const int TZ_OFFSET = 2; //change this to adapt it to your time zone
 
 int connected = 0;
 
 void setup() {
   Serial.begin(115200);
 
-  // check if the WiFi module works
   if (WiFi.status() == WL_NO_SHIELD) {
-    Serial.println("WiFi shield not present");
-    // don't continue:
-    while (true);
+    while (1) {
+      blink(200, 100);
+      blink(500, 100);
+    }
   }
 
   // attempt to connect to WiFi network:
@@ -56,28 +54,14 @@ void setup() {
 
   if (status != WL_CONNECTED) {
     while (1) {
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(200);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(1000);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-    }    
+      blink(200, 100);
+      blink(1000, 100);
+    }
   }
 
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(50);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(50);
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(50);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(50);
-  
+  blinkr(50, 50, 2);
 
-  // you're connected now, so print out the status:
+  // print out the connection status for debugging purposes
   printWiFiStatus();
 
   rtc.begin();
@@ -93,18 +77,8 @@ void setup() {
   if (numberOfTries > maxTries) {
     Serial.print("NTP unreachable!!");
     while (1) {
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(200);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(200);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(1000);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);  
+      blinkr(200, 100, 2);
+      blink(1000, 100);
     }
   }
   else {
@@ -115,36 +89,32 @@ void setup() {
     Serial.println();
   }
 
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(100);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(50);
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(100);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(50);
+  blinkr(100, 50, 2);
 
   connected = client.connect(monitorServer, monitorPort);
   if (!connected) {
     Serial.print("Could not connect to monitor server\n");
     while (1) {
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(200);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(200);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(200);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);
-      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-      delay(1000);                       // wait for a second
-      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-      delay(100);  
+      blinkr(200, 100, 3);
+      blink(1000, 100);
     }
+  }
+}
+
+// Blink the onboard LED synchronously for the given on time and off time,
+// in milliseconds.
+void blink(int onMS, int offMS) {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(onMS);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(offMS);
+}
+
+// Blink the onboard LED synchronously for the given on and off time, for
+// the given number of repeats.
+void blinkr(int onMS, int offMS, int repeat) {
+  for (int i = 0; i < repeat; i++) {
+    blink(onMS, offMS);
   }
 }
 
@@ -158,7 +128,7 @@ void loop() {
 
 void printTime()
 {
-  print2digits(rtc.getHours() + GMT);
+  print2digits(rtc.getHours() + TZ_OFFSET);
   Serial.print(":");
   print2digits(rtc.getMinutes());
   Serial.print(":");
