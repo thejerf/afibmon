@@ -8,6 +8,13 @@
 
 */
 
+/*
+
+ * TODO: If connection is lost, attempt to reconnect, preferably
+   without losing heart data as long as it reconnects quickly enough.
+
+*/
+
 #include <SPI.h>
 #include <WiFiNINA.h> //Include this instead of WiFi101.h as needed
 #include <WiFiUdp.h>
@@ -20,6 +27,7 @@
 #include "secrets.h"
 
 #include "pitches.h"
+#include "packets.c"
 
 RTCZero rtc;
 
@@ -38,7 +46,7 @@ void setup() {
   Serial.print("Hello!");
   tone(piezoPin, NOTE_C3, 500);
   Serial.print("generated the tone");
-  
+
   if (WiFi.status() == WL_NO_SHIELD) {
     while (1) {
       blink(200, 100);
@@ -141,6 +149,8 @@ void setup() {
   tone(piezoPin, NOTE_C4, 250);
   delay(250);
 
+  // Set up the every-five-second interrupt handler to send data.
+  startSendingPackets();
 }
 
 // Blink the onboard LED synchronously for the given on time and off time,
@@ -160,12 +170,11 @@ void blinkr(int onMS, int offMS, int repeat) {
   }
 }
 
+uint16 value = 0;
+
 void loop() {
-  printDate();
-  printTime();
-  Serial.println();
-  client.println("hello!");
-  delay(1000);
+  appendDatum(value++);
+  delay(25);
 }
 
 void printTime()
