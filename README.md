@@ -24,7 +24,7 @@ Feel free to play with this for a bit, but if you're depending on it for anythin
 
 1. An Arduino MKR1010 board.
 1. An AD8232 Arduino shield.
-1. A passive buzzer and 100ohm resistor for it.
+1. A passive buzzer.
 1. Eventually, some form of case to put this in.
 
 # Software Install

@@ -12,6 +12,7 @@ import (
 const (
 	Timestamp = byte(1)
 	Heartdata = byte(2)
+	Error     = byte(3)
 )
 
 // This defines a simple record-based format that allows us to mark
@@ -87,6 +88,13 @@ func (rr *RecordReader) NextRecord() (Record, error) {
 			return nil, err
 		}
 		return r, nil
+	case Error:
+		r := ErrorRecord{}
+		err = r.UnmarshalBinary(record)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
 	default:
 		return nil, errors.New("unknown record type")
 	}
@@ -97,24 +105,31 @@ type Record interface {
 }
 
 type TimestampRecord struct {
-	time time.Time
+	Time time.Time
 }
 
 // MarshalBinary marshals the timestamp record into a binary stream.
 func (tr TimestampRecord) MarshalBinary() ([]byte, error) {
-	nano := tr.time.UnixNano()
+	nano := tr.Time.UnixNano()
 	eightbytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(eightbytes, uint64(nano))
 	return eightbytes, nil
 }
 
 func (tr *TimestampRecord) UnmarshalBinary(b []byte) error {
-	if len(b) != 8 {
+	switch len(b) {
+	case 4:
+		epoch := binary.BigEndian.Uint32(b)
+		tr.Time = time.Unix(int64(epoch), 0)
+		return nil
+	case 8:
+		nanoseconds := binary.BigEndian.Uint64(b)
+		tr.Time = time.Unix(0, int64(nanoseconds))
+		return nil
+	default:
 		return errors.New("Illegal size timestamp")
 	}
-	nanoseconds := binary.BigEndian.Uint64(b)
-	tr.time = time.Unix(0, int64(nanoseconds))
-	return nil
+
 }
 
 func (tr TimestampRecord) isRecord() {}
@@ -152,3 +167,18 @@ func (hdr *HeartDataRecord) UnmarshalBinary(b []byte) error {
 }
 
 func (hdr HeartDataRecord) isRecord() {}
+
+type ErrorRecord struct {
+	Error string
+}
+
+func (er ErrorRecord) MarshalBinary() ([]byte, error) {
+	return []byte(er.Error), nil
+}
+
+func (er *ErrorRecord) UnmarshalBinary(b []byte) error {
+	er.Error = string(b)
+	return nil
+}
+
+func (er ErrorRecord) isRecord() {}

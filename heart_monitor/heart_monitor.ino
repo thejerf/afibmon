@@ -27,7 +27,6 @@
 #include "secrets.h"
 
 #include "pitches.h"
-#include "packets.c"
 
 RTCZero rtc;
 
@@ -38,8 +37,9 @@ int status = WL_IDLE_STATUS;
 const int TZ_OFFSET = 2; //change this to adapt it to your time zone
 
 int connected = 0;
-
 int piezoPin = 0;
+
+#include "packets.h"
 
 void setup() {
   Serial.begin(115200);
@@ -170,11 +170,15 @@ void blinkr(int onMS, int offMS, int repeat) {
   }
 }
 
-uint16 value = 0;
+unsigned short value = 0;
 
 void loop() {
-  appendDatum(value++);
-  delay(25);
+  int datum = analogRead(A0);
+  unsigned short value = (unsigned short)(datum & 0xffff);
+  appendDatum(value);
+  // I'm not sure exactly how fast we can reasonably sample this, 
+  // but 50Hz seems a reasonable guess.
+  delay(20);
 }
 
 void printTime()

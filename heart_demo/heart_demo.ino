@@ -19,16 +19,19 @@ local pub, and you've found our code helpful, please buy us a round!
 Distributed as-is; no warranty is given.
 ******************************************************************************/
 
+const int PIN_LO_PLUS = 2;
+const int PIN_LO_MINUS = 3;
+
 void setup() {
   // initialize the serial communication:
   Serial.begin(9600);
-  pinMode(10, INPUT); // Setup for leads off detection LO +
-  pinMode(11, INPUT); // Setup for leads off detection LO -
+  pinMode(PIN_LO_PLUS, INPUT); // Setup for leads off detection LO +
+  pinMode(PIN_LO_MINUS, INPUT); // Setup for leads off detection LO -
 
 }
 
 void loop() {
-  if((digitalRead(10) == 1)||(digitalRead(11) == 1)){
+  if((digitalRead(PIN_LO_PLUS) == 1)||(digitalRead(PIN_LO_MINUS) == 1)){
     Serial.println('y');
   } else{
     // send the value of analog input 0:

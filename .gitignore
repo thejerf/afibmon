@@ -1,0 +1,10 @@
+# Ignore processed artifacts of the heartbeats and their intermediate
+# products
+amp_frames
+freq_frames
+plotdata.tmp
+amplitude.mp4
+frequency.mp4
+
+# Ignore my editor artifacts
+*~
