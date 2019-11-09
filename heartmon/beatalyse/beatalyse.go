@@ -38,6 +38,23 @@ type BeatAnalyzer struct {
 	fft  *fourier.FFT
 }
 
+type FFT struct {
+	SampleRate   float64
+	Coefficients []float64
+	Frequencies  []float64
+}
+
+func (fft FFT) DumpText(w io.Writer) error {
+	var err error
+	for idx, value := range fft.Coefficients {
+		_, err = fmt.Fprintf(w, "%5.3f %5.3f\n",
+			fft.Frequencies[idx],
+			value,
+		)
+	}
+	return err
+}
+
 // New returns a new heartbeat analyzer. It should probably be called only
 // with powers of two, though the fourier function doesn't say anything
 // about that.
@@ -51,7 +68,7 @@ func New(i int) *BeatAnalyzer {
 // Analyze takes EKG data in the form of uint16s and does whatever it ends
 // up doing once it ends up doing it. Panics if the length is not the same
 // as it was created to be.
-func (ba *BeatAnalyzer) Analyze(ekg []uint16, w io.Writer) {
+func (ba *BeatAnalyzer) FFT(ekg []uint16) FFT {
 	if len(ekg) != ba.size {
 		panic("Wrong length")
 	}
@@ -62,6 +79,7 @@ func (ba *BeatAnalyzer) Analyze(ekg []uint16, w io.Writer) {
 	}
 
 	coeffs := ba.fft.Coefficients(nil, sequence)
+	frequencies := make([]float64, len(coeffs))
 
 	// We don't care about phase information, so throw it away
 	reals := make([]float64, len(coeffs))
@@ -71,21 +89,10 @@ func (ba *BeatAnalyzer) Analyze(ekg []uint16, w io.Writer) {
 		} else {
 			reals[idx] = real(coeff)
 		}
+		frequencies[idx] = ba.fft.Freq(idx) * SampleRate
 	}
 
-	for idx, value := range reals {
-		// fmt.Printf(
-		// 	"%5d %5.3f %5.3f %5.3f\n",
-		// 	idx,
-		// 	ba.fft.Freq(idx)*SampleRate,
-		// 	value,
-		// 	math.Log(value),
-		// )
-		fmt.Fprintf(w, "%5.3f %5.3f\n",
-			ba.fft.Freq(idx)*SampleRate,
-			value,
-		)
-	}
+	return FFT{SampleRate, reals, frequencies}
 }
 
 // Plan:

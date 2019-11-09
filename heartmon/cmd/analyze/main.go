@@ -64,7 +64,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		analyzer.Analyze(chunk, f)
+		fft := analyzer.FFT(chunk)
+		fft.DumpText(f)
 		f.Close()
 
 		cmd := exec.Command("gnuplot",
