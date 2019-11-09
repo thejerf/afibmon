@@ -4,6 +4,8 @@ A repository holding the code I'm writing for my atrial fibrillation monitor.
 
 At the moment this is incomplete. When it is completed more information will be placed here.
 
+Current status Nov 2019 - still a mess. In progress.
+
 # Note
 
 Really, all open source users should understand that the source of their open source code has no obligation to help them out.
@@ -24,8 +26,10 @@ Feel free to play with this for a bit, but if you're depending on it for anythin
 
 1. An Arduino MKR1010 board.
 1. An AD8232 Arduino shield.
-1. A passive buzzer.
-1. Eventually, some form of case to put this in.
+1. A computer that can run a TCP server, hooked up to some form of audio
+   output.
+1. Eventually, some form of case to put this in, although as you will see,
+   the bar for this isn't exactly high....
 
 # Software Install
 
@@ -36,7 +40,7 @@ I'm not sure how to package this better. Suggestions welcome.
 2. In the Arduino IDE, install any necessary package to speak to your
    board, and install WifiNINA and RTCZero. (Despite the warning that it
    only works on the MKR1000 it unsurprisingly seems to work on the MKR1010
-   as well.
+   as well.)
 3. In afibmonitor/heart_monitor, create a new file with the following:
 
        char ssid[] = "YOURSSID";
@@ -46,7 +50,9 @@ I'm not sure how to package this better. Suggestions welcome.
 
    This will configure the sketch to hook to your Wifi. This is set up
    assuming WPA2; you're on your own if you're still on WEP, as I can't
-   test it. We'll get to the monitor server in a moment.
+   test it. We'll get to the monitor server in a moment. If you're on
+   something post-WPA2 or something, I've got nothing for you; you'll have
+   to figure out how to hook this up on your own.
 
 
 # My Story
