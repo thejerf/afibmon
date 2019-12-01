@@ -44,6 +44,8 @@ type FFT struct {
 	Frequencies  []float64
 }
 
+// DumpText dumps out the content of this FFT analysis in a format suitable
+// for use by gnuplot.
 func (fft FFT) DumpText(w io.Writer) error {
 	var err error
 	for idx, value := range fft.Coefficients {
@@ -53,6 +55,54 @@ func (fft FFT) DumpText(w io.Writer) error {
 		)
 	}
 	return err
+}
+
+func (fft FFT) Buckets(bucketCount int) Buckets {
+	// Page 53 of the thesis suggests that the key data is between 5 and 15
+	// Hz.
+
+	buckets := make([]float64, bucketCount)
+	bucketInterval := float64(10) / float64(bucketCount)
+
+	for idx, freq := range fft.Frequencies {
+		if freq < 5 || freq > 15 {
+			continue
+		}
+
+		bucket := int((freq - 5) / bucketInterval)
+		if bucket >= 0 && bucket < bucketCount {
+			buckets[bucket] += fft.Coefficients[idx]
+		}
+	}
+
+	return Buckets{
+		Interval: bucketInterval,
+		BottomHz: 5,
+		Buckets:  buckets,
+	}
+}
+
+type Buckets struct {
+	Interval float64
+	BottomHz float64
+	Buckets  []float64
+}
+
+// Normalized returns all buckets divided by the first. The first bucket is
+// consequently always one.
+func (b Buckets) Normalized() []float64 {
+	ret := make([]float64, len(b.Buckets))
+
+	total := float64(0)
+	for _, bucket := range b.Buckets {
+		total += bucket
+	}
+
+	for idx, bucket := range b.Buckets {
+		ret[idx] = (bucket / total) * float64(len(b.Buckets))
+	}
+
+	return ret
 }
 
 // New returns a new heartbeat analyzer. It should probably be called only
@@ -94,11 +144,3 @@ func (ba *BeatAnalyzer) FFT(ekg []uint16) FFT {
 
 	return FFT{SampleRate, reals, frequencies}
 }
-
-// Plan:
-// * Standardize on 512 chunks, which is about ten seconds.
-// * Bin the frequency data into, let's say, 8 "even" bins
-// * determine ratios of everything to everything else
-// * determine what constitutes good & bad heartbeats
-// * write this determination somehow into the analysis, so we can see it
-//   on the animated graphs
