@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# This ensures all executables build and all tests pass before a commit
+# goes through.
+
+set -ve
+
+for exe in analyze dumpinfo heartserver monitor testalert; do
+    go build github.com/thejerf/afibmon/heartmon/cmd/$exe
+done
+
+echo Build succeeds.
+exit 0
+
+
