@@ -60,17 +60,24 @@ func newInstance(conn io.Reader) {
 
 	hrrR, hrrW := io.Pipe()
 	stderrR, stderrW := io.Pipe()
+	rateDetectR, rateDetectW := io.Pipe()
+
+	rateDetector := NewRateDetector(rateDetectR, os.Stderr)
 
 	packets := io.TeeReader(
 		io.TeeReader(
-			conn,
-			hrrW, // write the packets to the human readable file
+			io.TeeReader(
+				conn,
+				hrrW, // write the packets to the human readable file
+			),
+			stderrW, // write all the packets to the standard error
+			// human-readable output
 		),
-		stderrW, // write all the packets to the standard error
-		// human-readable output
+		rateDetectW, // write to the rate detector
 	)
 
 	go HumanReadableOutput(hrrR, f2)
 	go HumanReadableOutput(stderrR, os.Stderr)
+	go rateDetector.Run()
 	io.Copy(f, packets)
 }

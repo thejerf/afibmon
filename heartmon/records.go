@@ -5,7 +5,9 @@ import (
 	"encoding"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
+	"os/exec"
 	"time"
 )
 
@@ -182,3 +184,171 @@ func (er *ErrorRecord) UnmarshalBinary(b []byte) error {
 }
 
 func (er ErrorRecord) isRecord() {}
+
+// RateDetector uses a bit of a hacky approach to detect the heart rate.
+type RateDetector struct {
+	WriteTimestamp bool
+	rr             *RecordReader
+	output         io.Writer
+	alerter        *Alerter
+
+	buffer []uint16
+}
+
+// NewRateDetector returns a new RateDetector.
+func NewRateDetector(r io.Reader, w io.Writer) *RateDetector {
+	alerter := NewAlerter(w)
+
+	return &RateDetector{
+		false,
+		NewRecordReader(r),
+		w,
+		alerter,
+		nil,
+	}
+}
+
+// This design allows us to take a pre-existing stream of heart info and
+// stream it through, reporting when all the alerts would have been.
+
+func (rr *RateDetector) Run() {
+	consequetiveBad := 0
+	limit := 90
+
+	lastTime := time.Time{}
+
+	for {
+		record, err := rr.rr.NextRecord()
+
+		keep := 50*60 + 1
+
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			fmt.Fprintf(rr.output, "Can't read from stream: %v\n", err)
+			return
+		}
+
+		switch r := record.(type) {
+		case TimestampRecord:
+			fmt.Fprintf(rr.output, "Time: %s\n",
+				r.Time.Format(time.RFC1123),
+			)
+			lastTime = r.Time
+		case ErrorRecord:
+			// Reset the buffer due to error
+			rr.buffer = []uint16{}
+
+		case HeartDataRecord:
+			rr.buffer = append(rr.buffer, r.Data...)
+			// trim to 60 seconds + 1 sample assuming 50Hz sample rate
+			samples := len(rr.buffer)
+			if samples > keep {
+				rr.buffer = rr.buffer[samples-keep:]
+			}
+
+			bpm := DetectHeartbeats(rr.buffer)
+
+			fmt.Fprintf(rr.output, "Beats per minute: %d\n",
+				bpm)
+
+			if bpm > limit {
+				consequetiveBad++
+			} else {
+				consequetiveBad = 0
+			}
+
+			if consequetiveBad > 20 {
+				rr.alerter.Alert(lastTime)
+			} else {
+				rr.alerter.Stop(lastTime)
+			}
+		}
+	}
+}
+
+var stateNormal = 0
+var stateLow = 1
+
+func DetectHeartbeats(ecg []uint16) int {
+	// now, do our crappy heartbeat detection:
+	// 1. Take simple derivative of the heartbeat rate.
+	// 2. Look for anything that is < -100 with a > 100 value 1 or
+	//    2 in front of it.
+	// 3. Call that a heartbeat.
+	// Based on just eyeballing it, it's not necessarily that bad.
+	//
+	// It turns out that this is decent at detecting normal heartbeats, but
+	// if you apply it to the moments I seem to be fibrellating, it tends
+	// to false positive high. However, under the circumstances... that's
+	// not all bad....
+
+	state := stateNormal
+
+	derivative := make([]int16, len(ecg)-1)
+	heartbeats := 0
+	for idx := range ecg {
+		if idx == 0 {
+			continue
+		}
+
+		derivative[idx-1] = int16(ecg[idx]) - int16(ecg[idx-1])
+
+		switch state {
+		case stateNormal:
+			if derivative[idx-1] < -50 {
+				heartbeats++
+				state = stateLow
+			}
+
+		case stateLow:
+			if derivative[idx-1] > 25 {
+				state = stateNormal
+			}
+		}
+	}
+
+	return heartbeats
+}
+
+type Alerter struct {
+	playing   bool
+	logstream io.Writer
+
+	cmd *exec.Cmd
+}
+
+func NewAlerter(out io.Writer) *Alerter {
+	return &Alerter{logstream: out}
+}
+
+func (a *Alerter) Alert(now time.Time) {
+	if a.cmd != nil {
+		return
+	}
+
+	fmt.Fprintf(a.logstream, "Starting alert at %s\n", now)
+
+	a.cmd = exec.Command("mplayer", "/home/jerf/StormSounds.m4a")
+	err := a.cmd.Start()
+	if err != nil {
+		fmt.Fprintf(a.logstream, "Couldn't start audio: %v\n", err)
+		a.cmd = nil
+	}
+}
+
+func (a *Alerter) Stop(now time.Time) {
+	if a.cmd == nil {
+		return
+	}
+
+	fmt.Fprintf(a.logstream, "Stopping alert at %s\n", now)
+
+	err := a.cmd.Process.Kill()
+	if err != nil {
+		fmt.Fprintf(a.logstream, "Can't kill mplayer: %s\n", err)
+	}
+	a.cmd.Wait()
+	a.cmd = nil
+}

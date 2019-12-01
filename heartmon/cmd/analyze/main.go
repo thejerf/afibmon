@@ -198,25 +198,31 @@ plot 'plotdata.tmp' with lines
 			err)
 	}
 
-	f, err = os.Create("plotdata.tmp")
+	f, err = os.Create("ampplotdata.tmp")
 	if err != nil {
-		return fmt.Errorf("Can't open plotdata.tmp: %v\n", err)
+		return fmt.Errorf("Can't open ampplotdata.tmp: %v\n", err)
 		os.Exit(1)
 	}
-	for idx, value := range chunk {
-		fmt.Fprintf(f, "%v %v\n", idx, value)
+	for idx := range chunk {
+		if idx == 0 {
+			continue
+		}
+		fmt.Fprintf(f, "%v %v\n", idx, int(chunk[idx])-int(chunk[idx-1]))
 	}
 	f.Close()
 
 	cmd = exec.Command("gnuplot",
 		"-e",
 		fmt.Sprintf(`
-set yr [0:800]; set terminal png size 3000,1500;
+set yr [-300:300]; set terminal png size 3000,1500;
 set output "amp_frames/frame%05d.png";
-set title "amp - frame %05d - %s";
-plot 'plotdata.tmp' with lines
+set title "BPM %d - amp - frame %05d - %s";
+plot 'ampplotdata.tmp' with lines
 `,
-			frame, frame, startishTime.Format(time.RFC1123),
+			frame,
+			heartmon.DetectHeartbeats(chunk),
+			frame,
+			startishTime.Format(time.RFC1123),
 		),
 	)
 	err = cmd.Run()
